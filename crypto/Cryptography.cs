@@ -31,7 +31,7 @@ namespace Kitsune.Cryptography
                 string[] contents;
                 using (StreamReader r = new StreamReader(File.OpenRead(filename)))
                     contents = r.ReadToEnd().Replace("\r\n", "|").Replace("\r","|").Split('|');
-                Array.Copy(contents, Keyring, contents.Length > 8 ? 8 : contents.Length);
+                Array.Copy(contents, Keyring, 8);
             }
             catch (Exception e)
             {

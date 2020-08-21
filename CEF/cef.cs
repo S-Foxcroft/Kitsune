@@ -145,7 +145,7 @@ namespace Kitsune
                             foreach(string f in files)
                             {
                                 string file = Path.GetFileName(f);
-                                Match result = Regex.Match(file, "(\\.[A-Za-z0-9])$");
+                                Match result = Regex.Match(file, "(\\.[A-Za-z0-9]+)$");
                                 string ext = result.Groups[1].Value;
                                 string targetDir = Path.Combine(output, file.Substring(0, file.Length - ext.Length));
                                 if(ext != ".kdir") Console.WriteLine("Provided file extension ("+ext+") does not match, decryption not guaranteed.");

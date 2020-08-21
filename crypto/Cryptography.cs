@@ -10,7 +10,7 @@ namespace Kitsune.Cryptography
     public class CryptoHandler
     {
         private string[] Keyring = new string[8];
-        private static readonly string FileRegEx = @"^(.*)\.enc([0-8])";
+        public static readonly string FileRegEx = @"^(.*)\.enc([0-8])";
         private Random rand;
         private RijndaelManaged rijn;
         public CryptoHandler()
@@ -50,6 +50,7 @@ namespace Kitsune.Cryptography
             byte[] dataAsBytes = Encoding.UTF8.GetBytes(data);
             data = Convert.ToBase64String(ct.TransformFinalBlock(dataAsBytes, 0, dataAsBytes.Length));
             Write(targetFile, data);
+            File.Delete(filename);
             return targetFile;
         }
         public string DecryptFile(string filename)
@@ -64,6 +65,7 @@ namespace Kitsune.Cryptography
                 byte[] dataAsBytes = Convert.FromBase64String(data);
                 data = Encoding.UTF8.GetString(ct.TransformFinalBlock(dataAsBytes, 0, dataAsBytes.Length));
                 Write(targetFile, data);
+                File.Delete(filename);
                 return data;
             }
             else throw new IOException("The file specified is not a Kitsune encrypted document.");

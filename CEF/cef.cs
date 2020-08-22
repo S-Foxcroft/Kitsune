@@ -160,7 +160,7 @@ namespace Kitsune
                                     catch (Exception e) { Console.WriteLine("An error occured: "+e.GetType().ToString()); }
                                     if(key.Substring(0,3) == "psk")
                                     {
-                                        key = key.Substring(3, key.Length - 4);
+                                        key = key.Substring(4, key.Length - 4);
                                         //find a registered keyring with this name, or cancel this extraction
                                         string keyPath = Path.Combine(myPath, "registered_keys", key + ".kkr");
                                         if (File.Exists(keyPath)) kCrypto.LoadKeyring(keyPath);
@@ -243,8 +243,8 @@ namespace Kitsune
         private static void RecursiveCopy(string here, string there)
         {
             foreach (string dir in Directory.GetDirectories(here)) {
-                Directory.CreateDirectory(Path.Combine(there, Path.GetDirectoryName(dir)));
-                RecursiveCopy(dir, Path.Combine(there,Path.GetDirectoryName(dir)));
+                Directory.CreateDirectory(Path.Combine(there, Path.GetFileName(dir)));
+                RecursiveCopy(dir, Path.Combine(there,Path.GetFileName(dir)));
             }
             foreach(string file in Directory.GetFiles(here))
             {

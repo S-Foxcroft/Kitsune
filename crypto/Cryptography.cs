@@ -45,11 +45,9 @@ namespace Kitsune.Cryptography
             string targetFile = filename+".enc"+keyIndex;
             SelectKey(keyIndex);
             ICryptoTransform ct = rijn.CreateEncryptor();
-            string data = Read(filename);
-
-            byte[] dataAsBytes = Encoding.UTF8.GetBytes(data);
-            data = Convert.ToBase64String(ct.TransformFinalBlock(dataAsBytes, 0, dataAsBytes.Length));
-            Write(targetFile, data);
+            byte[] dataAsBytes = File.ReadAllBytes(filename);
+            dataAsBytes = ct.TransformFinalBlock(dataAsBytes, 0, dataAsBytes.Length);
+            File.WriteAllBytes(targetFile, dataAsBytes);
             File.Delete(filename);
             return targetFile;
         }
@@ -61,31 +59,13 @@ namespace Kitsune.Cryptography
                 string targetFile = m.Groups[1].Value;
                 SelectKey(Int32.Parse(m.Groups[2].Value)); //throws FormatException if not a number (should be 1-8 if the regex matches)
                 ICryptoTransform ct = rijn.CreateDecryptor();
-                string data = Read(filename);
-                byte[] dataAsBytes = Convert.FromBase64String(data);
-                data = Encoding.UTF8.GetString(ct.TransformFinalBlock(dataAsBytes, 0, dataAsBytes.Length));
-                Write(targetFile, data);
+                byte[] dataAsBytes = File.ReadAllBytes(filename);
+                dataAsBytes = ct.TransformFinalBlock(dataAsBytes, 0, dataAsBytes.Length);
+                File.WriteAllBytes(targetFile, dataAsBytes);
                 File.Delete(filename);
-                return data;
+                return Encoding.Default.GetString(dataAsBytes);
             }
             else throw new IOException("The file specified is not a Kitsune encrypted document.");
-        }
-        private string Read(string filename)
-        {
-            string data = "";
-            using (StreamReader r = new StreamReader(File.Open(filename, FileMode.Open)))
-            {
-                data = r.ReadToEnd();
-            }
-            if (data == "") throw new IOException("The file specified could not be read or is empty.");
-            return data;
-        }
-        private void Write(string filename, string data)
-        {
-            using (StreamWriter w = new StreamWriter(File.Open(filename, FileMode.Create)))
-            {
-                w.Write(data);
-            }
         }
         private void SelectKey(int keyIndex)
         {

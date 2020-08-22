@@ -13,6 +13,7 @@ namespace Kitsune
         static string myPath;
         static CryptoHandler kCrypto;
         static Random rnd;
+        static int fileCount = 0;
         private enum ArgumentState
         {
             NONE, I_FILE, I_DIRECTORY, I_KEYNAME, O_DIRECTORY
@@ -69,67 +70,64 @@ namespace Kitsune
                     List<String> files = new List<String>(), dirs = new List<String>();
                     string output = "", keyID="sanitycheck";
                     ArgumentState state = ArgumentState.NONE;
-                    for(int i = 0; i < args.Length; i++)
+                    for(int i = 0; i < args.Length; i++) switch (args[i].ToLower())
                     {
-                        switch (args[i].ToLower())
-                        {
-                            case "/f":
-                            case "-f":
-                            case "/file":
-                            case "-file":
-                            case "/files":
-                            case "-files":
-                                state = ArgumentState.I_FILE;
-                                break;
-                            case "/d":
-                            case "-d":
-                            case "/dir":
-                            case "-dir":
-                            case "/directory":
-                            case "-directory":
-                                state = ArgumentState.I_DIRECTORY;
-                                break;
-                            case "/o":
-                            case "-o":
-                            case "/out":
-                            case "-out":
-                            case "/output":
-                            case "-output":
-                                state = ArgumentState.O_DIRECTORY;
-                                break;
-                            case "/e":
-                            case "-e":
-                            case "/extract":
-                            case "-extract":
-                                extractMode = true;
-                                state = ArgumentState.I_FILE;
-                                break;
-                            case "/i":
-                            case "-i":
-                            case "/includekey":
-                            case "-includekey":
-                                copyKeyring = true;
-                                break;
-                            case "/k":
-                            case "-k":
-                            case "/key":
-                            case "-key":
-                                state = ArgumentState.I_KEYNAME;
-                                break;
-                            case "?":
-                            case "/?":
-                            case "/help":
-                            case "--help":
-                                PrintHelp();
-                                return;
-                            default:
-                                //do things here depending on current state
-                                if (state == ArgumentState.I_FILE) files.Add(args[i]);
-                                else if (state == ArgumentState.I_DIRECTORY) dirs.Add(args[i]);
-                                else if (state == ArgumentState.I_KEYNAME) keyID = args[i];
-                                else if (state == ArgumentState.O_DIRECTORY) output = args[i];
-                                break;
-                        }
+                        case "/f":
+                        case "-f":
+                        case "/file":
+                        case "-file":
+                        case "/files":
+                        case "-files":
+                            state = ArgumentState.I_FILE;
+                            break;
+                        case "/d":
+                        case "-d":
+                        case "/dir":
+                        case "-dir":
+                        case "/directory":
+                        case "-directory":
+                            state = ArgumentState.I_DIRECTORY;
+                            break;
+                        case "/o":
+                        case "-o":
+                        case "/out":
+                        case "-out":
+                        case "/output":
+                        case "-output":
+                            state = ArgumentState.O_DIRECTORY;
+                            break;
+                        case "/e":
+                        case "-e":
+                        case "/extract":
+                        case "-extract":
+                            extractMode = true;
+                            state = ArgumentState.I_FILE;
+                            break;
+                        case "/i":
+                        case "-i":
+                        case "/includekey":
+                        case "-includekey":
+                            copyKeyring = true;
+                            break;
+                        case "/k":
+                        case "-k":
+                        case "/key":
+                        case "-key":
+                            state = ArgumentState.I_KEYNAME;
+                            break;
+                        case "?":
+                        case "/?":
+                        case "/help":
+                        case "--help":
+                            PrintHelp();
+                            return;
+                        default:
+                            //do things here depending on current state
+                            if (state == ArgumentState.I_FILE) files.Add(args[i]);
+                            else if (state == ArgumentState.I_DIRECTORY) dirs.Add(args[i]);
+                            else if (state == ArgumentState.I_KEYNAME) keyID = args[i];
+                            else if (state == ArgumentState.O_DIRECTORY) output = args[i];
+                            break;
                     }
                     if (files.Count == 0 && dirs.Count == 0)
                     {
@@ -194,19 +192,24 @@ namespace Kitsune
                             string targetDir = Path.Combine(Path.GetTempPath(), "Kitsune", Guid.NewGuid().ToString());
                             Directory.CreateDirectory(targetDir);
                             //recreate folder structure
+                            fileCount = 0;
                             foreach (string dir in dirs) RecursiveCopy(dir, targetDir);
-                            foreach (string file in files) File.Copy(file, Path.Combine(targetDir,Path.GetFileName(file)));
+                            foreach (string file in files) { File.Copy(file, Path.Combine(targetDir, Path.GetFileName(file))); fileCount += 1; }
                             //load the keyring for encryption
                             if (!File.Exists(Path.Combine(myPath, "registered_keys", keyID + ".kkr"))) keyID = "sanitycheck";
                             kCrypto.LoadKeyring(Path.Combine(myPath,"registered_keys",keyID+".kkr"));
+                            Console.WriteLine("Keyring loaded. Encrpyintg "+fileCount+" files...");
                             //encrypt each file and move it to the new structure
                             Traversal(targetDir, false);
                             //create config and copy keyring if needed.
+                            Console.WriteLine("Generating decryption configutation...");
                             using (StreamWriter w = new StreamWriter(File.OpenWrite(Path.Combine(targetDir, "enc.cfg")))) w.Write(copyKeyring?"integrated":"psk|"+keyID);
                             if (copyKeyring) File.Copy(Path.Combine(myPath, "registered_keys", keyID+".kkr"), Path.Combine(targetDir, keyID+".kkr"));
                             //create archive at destination folder
+                            Console.WriteLine("Packaging archive...");
                             ZipFile.CreateFromDirectory(targetDir, Path.Combine(output, Path.GetFileName(targetDir) + ".kdir"), CompressionLevel.NoCompression, false);
-                            Directory.Delete(targetDir,true);
+                            Console.WriteLine("Package created at "+ Path.Combine(output, Path.GetFileName(targetDir) + ".kdir"));
+                            Directory.Delete(targetDir, true);
                         }
                     }
                 }
@@ -237,8 +240,11 @@ namespace Kitsune
         {
             foreach (string dir in Directory.GetDirectories(startDir)) Traversal(dir, decrypt);
             foreach (string file in Directory.GetFiles(startDir))
+            {
                 if (!decrypt) kCrypto.EncryptFile(file);
-                else if (Regex.Match(Path.GetFileName(file),CryptoHandler.FileRegEx).Success) kCrypto.DecryptFile(file);
+                else if (Regex.Match(Path.GetFileName(file), CryptoHandler.FileRegEx).Success) kCrypto.DecryptFile(file);
+                Console.WriteLine("> " + Path.GetFileName(file));
+            }
         }
         private static void RecursiveCopy(string here, string there)
         {
@@ -249,6 +255,7 @@ namespace Kitsune
             foreach(string file in Directory.GetFiles(here))
             {
                 File.Copy(file, Path.Combine(there, Path.GetFileName(file)));
+                fileCount += 1;
             }
         }
     }

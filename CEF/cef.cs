@@ -205,7 +205,7 @@ namespace Kitsune
                             using (StreamWriter w = new StreamWriter(File.OpenWrite(Path.Combine(targetDir, "enc.cfg")))) w.Write(copyKeyring?"integrated":"psk|"+keyID);
                             if (copyKeyring) File.Copy(Path.Combine(myPath, "registered_keys", keyID+".kkr"), Path.Combine(targetDir, keyID+".kkr"));
                             //create archive at destination folder
-                            ZipFile.CreateFromDirectory(targetDir, Path.Combine(output, Path.GetFileName(targetDir) + ".kdir"), CompressionLevel.Optimal, false);
+                            ZipFile.CreateFromDirectory(targetDir, Path.Combine(output, Path.GetFileName(targetDir) + ".kdir"), CompressionLevel.NoCompression, false);
                             Directory.Delete(targetDir,true);
                         }
                     }
